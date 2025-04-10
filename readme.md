@@ -11,5 +11,5 @@ After setting up the environment.
 
 ```
 source dev/bin/activate
-pre-commit install`
+pre-commit install
 ```
