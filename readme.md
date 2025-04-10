@@ -1,9 +1,15 @@
-# Base Tamplate V1
+# CS7648 Lab
 
-Language Support:
+### venv Environment setup
 
-Python 
-- Pylint
+```
+./scripts/setup.sh
+```
 
-C++
-- clang-format
+### Development setup
+After setting up the environment.
+
+```
+source dev/bin/activate
+pre-commit install`
+```
