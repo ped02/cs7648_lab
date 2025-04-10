@@ -32,13 +32,11 @@ class WAMEnv:
             'wam/palm_yaw_joint',
         ]
 
-        if position_control is None and velocity_control is None:
+        if (position_control and velocity_control) or not (
+            position_control or velocity_control
+        ):
             raise ValueError(
-                'Expected either one of position_control or velocity_control must not be None'
-            )
-        if position_control is not None and velocity_control is not None:
-            raise ValueError(
-                'Expected only either position_control or veloicty_control to not be None'
+                'Expected only one of position_control or velocity_control to be true'
             )
         self.position_control = position_control
         self.velocity_control = velocity_control
