@@ -13,3 +13,9 @@ build/
 
 # Mac OS
 .DS_Store
+
+# Ignore graphs
+code/figs/
+
+# Ignore result
+code/trained_bc.pkl

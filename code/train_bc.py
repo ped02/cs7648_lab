@@ -23,6 +23,33 @@ def update_policy_with_bc(nn_readonly, inputs, labels, learning_rate):
     # NOTE: Use nn_new for all computations, nn_readonly should not be used
 
     #####
+    total_samples = 0
+    for state_input, label_output in zip(inputs, labels):
+        state_input_expanded = np.expand_dims(state_input, -1)
+        label_output_expanded = np.expand_dims(label_output, -1)
+
+        predicted_output = forward_pass(nn_new, state_input_expanded)
+
+        gradient = backprop(
+            nn_new, state_input_expanded, label_output_expanded, loss='MSE'
+        )
+
+        for j in range(len(nn_new)):
+            delta_w = gradient[j][0]
+            delta_b = gradient[j][1]
+
+            nn_new[j][0] = (
+                nn_new[j][0] - learning_rate * delta_w
+            )  # Update the neural network weights
+            nn_new[j][1] = (
+                nn_new[j][1] - learning_rate * delta_b
+            )  # Update the neural network biases
+
+        loss += np.mean(np.power(label_output_expanded - predicted_output, 2))
+        total_samples += 1
+
+    loss = (loss / total_samples) if total_samples != 0 else 0
+
     return nn_new, loss
 
 
