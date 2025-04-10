@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import numpy as np
-from time import sleep, time
-import os
+from time import sleep, time  # noqa: F401
+import os  # noqa: F401
 
 # from wam_environment.CallbackManager import CallbackManager
 # from wam_environment.check_state_validity import StateVerifier
@@ -10,20 +10,36 @@ import os
 # import pickle
 # import gym
 
-class WAMEnv():
-    def __init__(self, horizon=100, dt=0.02, ball_return_flags=True, position_control=True, velocity_control=False):
+
+class WAMEnv:
+    def __init__(
+        self,
+        horizon=100,
+        dt=0.02,
+        ball_return_flags=True,
+        position_control=True,
+        velocity_control=False,
+    ):
         # Serializable.quick_init(self, locals())
         # rospy.init_node("WAM_ENV")
-        self.order_of_joint_names = ["wam/base_yaw_joint",
-                                     "wam/shoulder_pitch_joint",
-                                     "wam/shoulder_yaw_joint",
-                                     "wam/elbow_pitch_joint",
-                                     "wam/wrist_yaw_joint",
-                                     "wam/wrist_pitch_joint",
-                                     "wam/palm_yaw_joint"]
+        self.order_of_joint_names = [
+            'wam/base_yaw_joint',
+            'wam/shoulder_pitch_joint',
+            'wam/shoulder_yaw_joint',
+            'wam/elbow_pitch_joint',
+            'wam/wrist_yaw_joint',
+            'wam/wrist_pitch_joint',
+            'wam/palm_yaw_joint',
+        ]
 
-        assert position_control or velocity_control
-        assert not (position_control and velocity_control)
+        if position_control is None and velocity_control is None:
+            raise ValueError(
+                'Expected either one of position_control or velocity_control must not be None'
+            )
+        if position_control is not None and velocity_control is not None:
+            raise ValueError(
+                'Expected only either position_control or veloicty_control to not be None'
+            )
         self.position_control = position_control
         self.velocity_control = velocity_control
 
@@ -40,23 +56,52 @@ class WAMEnv():
         # demo velocity high: [2.67509339, 1.60940834, 6.64290153, 6.20163291, 3.76027639, 2.73010612, 3.17396976]
         # demo ball low: [-1.81521594, -0.83832843, 0.01538451]
         # demo ball high: [2.3689483, 0.03755151, 0.83166434]
-        low = np.array([1.0, -0.5, -1.0, 1.0, -3.0, -0.5, -0.5] + [-1, -1.5, -1, -4, -4, -4.5, -1] + [-2, -1, 0.0])
-        high = np.array([2.2, 1.0, 2.0, 3.0, 0.0, 0.5, 0.5] + [3, 2, 7, 7, 4, 3, 4] + [3.0, 1.0, 1.0])
+        low = np.array(
+            [1.0, -0.5, -1.0, 1.0, -3.0, -0.5, -0.5]
+            + [-1, -1.5, -1, -4, -4, -4.5, -1]
+            + [-2, -1, 0.0]
+        )
+        high = np.array(
+            [2.2, 1.0, 2.0, 3.0, 0.0, 0.5, 0.5]
+            + [3, 2, 7, 7, 4, 3, 4]
+            + [3.0, 1.0, 1.0]
+        )
         if ball_return_flags:
             # + [hit_ball, over_net]
             low = np.concatenate([low, [0.0, 0.0]])
             high = np.concatenate([high, [1.0, 1.0]])
-        self._observation_space = []#Box(low, high)
+        self._observation_space = []  # Box(low, high)
         # logger.log("observation space: {}".format(self._observation_space))
 
         if position_control:
             # action (position delta in one frame) space is calculated by demonstration's limits
             # demo position delta low: [-0.00153398, -0.01876072, -0.00998905, -0.03647465, -0.04222401, -0.05922431, -0.01181566]
             # demo position delta high: [0.03875128, 0.02296899, 0.09893266, 0.09255017, 0.05519168, 0.03779602, 0.02342583]
-            self._action_space = [np.array([1.0, -0.5, -1.0, 1.0, -3.0, -0.5, -0.5, -1, -1.5, -1, -4, -4, -4.5, -1]),
-                                  np.array([2.2, 1.0, 2.0, 3.0, 0.0, 0.5, 0.5, 3, 2, 7, 7, 4, 3, 4])] 
-                                  # Box(np.array([-0.01, -0.16, -0.02, -0.1, -0.07, -0.11, -0.04]),
-                                    # np.array([0.11, 0.03, 0.44, 0.28, 0.10, 0.10, 0.04]))
+            self._action_space = [
+                np.array(
+                    [
+                        1.0,
+                        -0.5,
+                        -1.0,
+                        1.0,
+                        -3.0,
+                        -0.5,
+                        -0.5,
+                        -1,
+                        -1.5,
+                        -1,
+                        -4,
+                        -4,
+                        -4.5,
+                        -1,
+                    ]
+                ),
+                np.array(
+                    [2.2, 1.0, 2.0, 3.0, 0.0, 0.5, 0.5, 3, 2, 7, 7, 4, 3, 4]
+                ),
+            ]
+        # Box(np.array([-0.01, -0.16, -0.02, -0.1, -0.07, -0.11, -0.04]),
+        # np.array([0.11, 0.03, 0.44, 0.28, 0.10, 0.10, 0.04]))
         elif velocity_control:
             raise NotImplementedError
 
@@ -64,7 +109,15 @@ class WAMEnv():
         self._horizon = horizon
 
         self.timestep = 0
-        self.init_state = [1.46, 0.209, -0.60, 1.173, -0.13, 0.08, 1.55] #None   # Kin Man: hardcoded it 
+        self.init_state = [
+            1.46,
+            0.209,
+            -0.60,
+            1.173,
+            -0.13,
+            0.08,
+            1.55,
+        ]  # None   # Kin Man: hardcoded it
         self.dt = dt
         self.control_rate = int(1 / self.dt)
         self.seconds_to_move_to_initial_position = 3
@@ -89,8 +142,12 @@ class WAMEnv():
         return self._horizon
 
     def move_to_initial_position(self):
-        assert self.init_state is not None
-        assert len(self.init_state) == 7
+        if self.init_state is None:
+            raise ValueError('self.init_state must not be None')
+        if len(self.init_state) != 7:
+            raise ValueError(
+                f'Expected self.init_state to have length 7, but got {len(self.init_state)=}'
+            )
 
         # goal and current position
         joint_goal = self.init_state.copy()
@@ -99,27 +156,52 @@ class WAMEnv():
             current_position = self.callback_manager.wam_position.copy()
         # calculate linear interpolate trajectory from current position to goal
         trajectory_to_initial_position = []
-        differences = [joint_goal[i] - current_position[i] for i in range(len(current_position))]
-        num_frames_to_initial_position = self.control_rate * self.seconds_to_move_to_initial_position
+        differences = [
+            joint_goal[i] - current_position[i]
+            for i in range(len(current_position))
+        ]
+        num_frames_to_initial_position = (
+            self.control_rate * self.seconds_to_move_to_initial_position
+        )
         for t in range(self.control_rate):  # fade-in part for a second
             trajectory_to_initial_position.append(
-                [current_position[i] + differences[i] * 1.0 / num_frames_to_initial_position / 2.0 * t
-                 for i in range(len(current_position))])
-        for t in range(num_frames_to_initial_position - int(self.control_rate // 2)):
-            trajectory_to_initial_position.append([current_position[i] + differences[i] * 1.0 /
-                                                   num_frames_to_initial_position * (t + int(self.control_rate // 2))
-                                                   for i in range(len(current_position))])
+                [
+                    current_position[i]
+                    + differences[i]
+                    * 1.0
+                    / num_frames_to_initial_position
+                    / 2.0
+                    * t
+                    for i in range(len(current_position))
+                ]
+            )
+        for t in range(
+            num_frames_to_initial_position - int(self.control_rate // 2)
+        ):
+            trajectory_to_initial_position.append(
+                [
+                    current_position[i]
+                    + differences[i]
+                    * 1.0
+                    / num_frames_to_initial_position
+                    * (t + int(self.control_rate // 2))
+                    for i in range(len(current_position))
+                ]
+            )
         for state in trajectory_to_initial_position:
             if self.state_verifier.checkCollision(state):
-                print("Detect Collision in trajectory_to_initial_position!!!")
+                print('Detect Collision in trajectory_to_initial_position!!!')
                 # rospy.logwarn("Detect Collision in trajectory_to_initial_position!!!")
-        input("Press enter to start moving to start position in %d seconds." % self.seconds_to_move_to_initial_position)
-        print("[Alert] Moving to start position")
+        input(
+            'Press enter to start moving to start position in %d seconds.'
+            % self.seconds_to_move_to_initial_position
+        )
+        print('[Alert] Moving to start position')
         # for each_data in trajectory_to_initial_position:
-            # message = Float64MultiArray(data=each_data)
-            # self.wam_commander.publish(message)
-            # self.rospy_control_rate.sleep()
-        print("Done moving to start position")
+        # message = Float64MultiArray(data=each_data)
+        # self.wam_commander.publish(message)
+        # self.rospy_control_rate.sleep()
+        print('Done moving to start position')
 
     def reset(self):
         self.timestep = 0
@@ -127,11 +209,11 @@ class WAMEnv():
         self.move_to_initial_position()
         self.callback_manager.reset()
 
-        input("Press Enter to start waiting for ball and start execution.")
-        print("Waiting for ball...")
+        input('Press Enter to start waiting for ball and start execution.')
+        print('Waiting for ball...')
         # while len(self.callback_manager.ball_position) == 0:
         #     rospy.sleep(0.01)
-        print("Found ball!")
+        print('Found ball!')
 
         self.callback_manager.start_recording(record_rate=100)
 
@@ -141,8 +223,12 @@ class WAMEnv():
         # current_state = np.concatenate([self.callback_manager.ball_position,
         #                                 self.callback_manager.wam_position[:7],
         #                                 self.callback_manager.wam_speed[:7]])
-        current_state = np.concatenate([self.callback_manager.wam_position[:7],
-                                        self.callback_manager.wam_speed[:7]])
+        current_state = np.concatenate(
+            [
+                self.callback_manager.wam_position[:7],
+                self.callback_manager.wam_speed[:7],
+            ]
+        )
 
         if self.ball_return_flags:
             current_state = np.concatenate([current_state, [1.0, 1.0]])
@@ -152,7 +238,10 @@ class WAMEnv():
         # !!!!!!!!! init_state has to be in moveit order !!!!!!!!!
         if type(init_state) is np.ndarray:
             init_state = init_state.tolist()
-        assert len(init_state) == 7
+        if len(init_state) != 7:
+            raise ValueError(
+                f'Expected init_state to have length 7, but got {len(init_state)=}'
+            )
         self.init_state = init_state
 
     def step(self, action):
@@ -171,7 +260,7 @@ class WAMEnv():
         # assert self.action_space.contains(action_np)
         # action_np = np.clip(action_np, self.action_space[0], self.action_space[1])
         if not np.all(action_np == original_action):
-            print("action clipped from", original_action, "to", action_np, "!")
+            print('action clipped from', original_action, 'to', action_np, '!')
         # joint_position_now = self.callback_manager.wam_position
         joint_position_after_move = action_np[:7]
         # clip the command if the target state exceeds set limit (not using now since we have the collision check)
@@ -181,11 +270,11 @@ class WAMEnv():
         # print("action requested:", action)
         # print("action executed:", joint_position_after_move - joint_position_now[:7])
         joint_position_after_move = joint_position_after_move.tolist()
-        print(f"joint_position_after_move: {joint_position_after_move}")
+        print(f'joint_position_after_move: {joint_position_after_move}')
         if self.state_verifier.checkCollision(joint_position_after_move):
             # rospy.logwarn("action %s will result in Collision!!!" % action)
-            print("action %s will result in Collision!!!" % action)
-            print("proceeding without executing the action")
+            print('action %s will result in Collision!!!' % action)
+            print('proceeding without executing the action')
             return (self.get_current_state(), 0.0, done)
 
         # execute

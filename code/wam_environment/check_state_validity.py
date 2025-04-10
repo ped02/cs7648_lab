@@ -3,27 +3,35 @@ import rospy
 from moveit_msgs.srv import GetStateValidityRequest, GetStateValidity
 from moveit_msgs.msg import RobotState
 from sensor_msgs.msg import JointState
-from wam_environment.utils import translate_from_joint_state_order_to_moveit_order
+from wam_environment.utils import (
+    translate_from_joint_state_order_to_moveit_order,
+)
 
 
 class StateVerifier:
     def __init__(self):
         # prepare msg to interface with moveit
         self.rs = RobotState()
-        self.rs.joint_state.name = ["wam/base_yaw_joint",
-                                    "wam/shoulder_pitch_joint",
-                                    "wam/shoulder_yaw_joint",
-                                    "wam/elbow_pitch_joint",
-                                    "wam/wrist_yaw_joint",
-                                    "wam/wrist_pitch_joint",
-                                    "wam/palm_yaw_joint"]
+        self.rs.joint_state.name = [
+            'wam/base_yaw_joint',
+            'wam/shoulder_pitch_joint',
+            'wam/shoulder_yaw_joint',
+            'wam/elbow_pitch_joint',
+            'wam/wrist_yaw_joint',
+            'wam/wrist_pitch_joint',
+            'wam/palm_yaw_joint',
+        ]
         self.rs.joint_state.position = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         self.joint_states_received = False
 
         # subscribe to joint joint states
-        rospy.Subscriber("joint_states", JointState, self.jointStatesCB, queue_size=1)
+        rospy.Subscriber(
+            'joint_states', JointState, self.jointStatesCB, queue_size=1
+        )
         # prepare service for collision check
-        self.sv_srv = rospy.ServiceProxy('/check_state_validity', GetStateValidity)
+        self.sv_srv = rospy.ServiceProxy(
+            '/check_state_validity', GetStateValidity
+        )
         # wait for service to become available
         self.sv_srv.wait_for_service()
         rospy.loginfo('service is avaiable')
@@ -50,7 +58,9 @@ class StateVerifier:
         """
         update robot state in self.rs, which will be used
         """
-        self.rs.joint_state.position = translate_from_joint_state_order_to_moveit_order(list(msg.position))
+        self.rs.joint_state.position = (
+            translate_from_joint_state_order_to_moveit_order(list(msg.position))
+        )
         self.joint_states_received = True
 
     def getStateValidity(self, position, group_name='arm', constraints=None):
@@ -82,7 +92,9 @@ class StateVerifier:
 if __name__ == '__main__':
     rospy.init_node('collision_checker_node', anonymous=False)
     collision_checker_node = StateVerifier()
-    positions_angle = np.array([40.0, 68, -46, 89, -131, -57, -26])  # moveit order
+    positions_angle = np.array(
+        [40.0, 68, -46, 89, -131, -57, -26]
+    )  # moveit order
     position_radius = positions_angle / 180 * np.pi
     collision_checker_node.checkCollision(position_radius)
     # collision_checker_node.start_collision_checker()

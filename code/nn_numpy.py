@@ -1,4 +1,3 @@
-
 from collections import defaultdict
 import numpy as np
 
@@ -22,12 +21,34 @@ def create_neural_net(numNodesPerLayer, numInputDims, numOutputDims):
     for i in range(num_layers + 1):
         if i == 0:
             # Use numInputDims for the input size
-            nn.append([np.random.normal(size=(numNodesPerLayer[i], numInputDims)) * np.sqrt(2.0 / numInputDims), np.zeros((numNodesPerLayer[i], 1))])
+            nn.append(
+                [
+                    np.random.normal(size=(numNodesPerLayer[i], numInputDims))
+                    * np.sqrt(2.0 / numInputDims),
+                    np.zeros((numNodesPerLayer[i], 1)),
+                ]
+            )
         elif i == num_layers:
             # Use numOutputDims for the output size
-            nn.append([np.random.normal(size=(numOutputDims, numNodesPerLayer[i-1])) * np.sqrt(2.0 / numNodesPerLayer[i-1]), np.zeros((numOutputDims, 1))])
+            nn.append(
+                [
+                    np.random.normal(
+                        size=(numOutputDims, numNodesPerLayer[i - 1])
+                    )
+                    * np.sqrt(2.0 / numNodesPerLayer[i - 1]),
+                    np.zeros((numOutputDims, 1)),
+                ]
+            )
         else:
-            nn.append([np.random.normal(size=(numNodesPerLayer[i], numNodesPerLayer[i-1])) * np.sqrt(2.0 / numNodesPerLayer[i-1]), np.zeros((numNodesPerLayer[i], 1))])
+            nn.append(
+                [
+                    np.random.normal(
+                        size=(numNodesPerLayer[i], numNodesPerLayer[i - 1])
+                    )
+                    * np.sqrt(2.0 / numNodesPerLayer[i - 1]),
+                    np.zeros((numNodesPerLayer[i], 1)),
+                ]
+            )
     return nn
 
 
@@ -47,13 +68,17 @@ def forward_pass(nn, X, final_softmax=False, full_return=False):
 
     Returns: if True, returns all the intermediate results with final outputs; if False, return 1 x n vector of predicted labels for the n examples.
     """
-    assert isinstance(X, np.ndarray)
-    assert len(X.shape) == 2
+    if not isinstance(X, np.ndarray):
+        raise TypeError(f'Expected np.ndarray for X but receieved {type(X)=}')
+    if len(X.shape) != 2:
+        raise ValueError(
+            f'Expected 2 dimensions for X but received {len(X.shape)=}'
+        )
 
-    num_layers = len(nn)             # Get the number of layers of our neural network
+    num_layers = len(nn)  # Get the number of layers of our neural network
 
     linear_outputs = []  # Outputs after linear transformation but before activation for each hidden layer. To be used in backprop.
-    outputs = []         # Outputs after activation for each hidden layer.
+    outputs = []  # Outputs after activation for each hidden layer.
     for i in range(num_layers):
         # Compute the result of linear transformation of layer i
         if i == 0:
@@ -62,10 +87,12 @@ def forward_pass(nn, X, final_softmax=False, full_return=False):
         else:
             # Subsequent z computations use output from previous layer
             # z[i] = dot(W[i].T, output[i - 1]) + b[i]
-            linear_outputs.append(np.matmul(nn[i][0], outputs[i-1]) + nn[i][1])
+            linear_outputs.append(
+                np.matmul(nn[i][0], outputs[i - 1]) + nn[i][1]
+            )
 
         # Compute the result after activation of layer i
-        if i < num_layers-1:
+        if i < num_layers - 1:
             # If layer i is not the output layer, then apply the ReLU activation function for the nodes at this layer.
             outputs.append(linear_outputs[i].copy())
             outputs[i][outputs[i] < 0] = 0
@@ -106,16 +133,27 @@ def backprop(nn, X, Y, loss):
 
     """
     # for PingPong
-    assert isinstance(X, np.ndarray)
-    assert len(X.shape) == 2
+    if not isinstance(X, np.ndarray):
+        raise TypeError(f'Expected np.ndarray for X but receieved {type(X)=}')
+    if len(X.shape) != 2:
+        raise ValueError(
+            f'Expected 2 dimensions for X but received {len(X.shape)=}'
+        )
 
-    num_layers = len(nn)                                            # Get the number of layers of our neural network
+    num_layers = len(nn)  # Get the number of layers of our neural network
     batch_size = X.shape[1]
 
-    Y_hat, outputs, linear_outputs = forward_pass(nn, X, final_softmax=(loss in ['Softmax', 'cross_entropy']), full_return=True)  # Perform the forward pass on the neural network
-    delta = [0.0] * num_layers                                      # Initialize the cell to store the error at level i
+    Y_hat, outputs, linear_outputs = forward_pass(
+        nn,
+        X,
+        final_softmax=(loss in ['Softmax', 'cross_entropy']),
+        full_return=True,
+    )  # Perform the forward pass on the neural network
+    delta = [
+        0.0
+    ] * num_layers  # Initialize the cell to store the error at level i
     # propagate error
-    for i in reversed(range(num_layers)):                           # Iterate over all layers
+    for i in reversed(range(num_layers)):  # Iterate over all layers
         if i == num_layers - 1:
             if loss == 'MSE':
                 delta[i] = -(Y - Y_hat)
@@ -142,29 +180,41 @@ def backprop(nn, X, Y, loss):
              d input       /   0   otherwise
                            \\
             """
-            derivative = linear_output  # Get the output of the activation function
-            derivative[linear_output >= 0] = 1.0  # Compute the derivative for elements >= 0
-            derivative[linear_output < 0] = 0.0  # Compute the derivative for elements < 0
-            delta[i] = np.dot(nn[i + 1][0].T, delta[i + 1]) * derivative   # Compute the error term for layer i
+            derivative = (
+                linear_output  # Get the output of the activation function
+            )
+            derivative[
+                linear_output >= 0
+            ] = 1.0  # Compute the derivative for elements >= 0
+            derivative[
+                linear_output < 0
+            ] = 0.0  # Compute the derivative for elements < 0
+            delta[i] = (
+                np.dot(nn[i + 1][0].T, delta[i + 1]) * derivative
+            )  # Compute the error term for layer i
 
     # Compute the gradients of all of the neural network's weights using the error term, delta
-    grad = defaultdict(list)  # Initialize a cell array, where cell i contains the gradients for the weight matrix in layer i of the neural network
+    grad = defaultdict(
+        list
+    )  # Initialize a cell array, where cell i contains the gradients for the weight matrix in layer i of the neural network
 
     for i in range(num_layers):
         if i == 0:
             # Gradients for the first layer are calculated using the examples, X.
             grad[i].append(np.dot(delta[i], X.T))
             grad[i].append(np.dot(delta[i], np.ones((batch_size, 1))))
-        elif i == num_layers-1:
+        elif i == num_layers - 1:
             # apply regularization to last layer weights
             rw = 0.0
-            grad[i].append(np.dot(delta[i], outputs[i - 1].T) + rw*nn[i][0])
-            grad[i].append(np.dot(delta[i], np.ones((batch_size, 1))) + rw*nn[i][1])
+            grad[i].append(np.dot(delta[i], outputs[i - 1].T) + rw * nn[i][0])
+            grad[i].append(
+                np.dot(delta[i], np.ones((batch_size, 1))) + rw * nn[i][1]
+            )
         else:
             # Gradients for subsequent layers are calculated using the output of the previous layers.
             grad[i].append(np.dot(delta[i], outputs[i - 1].T))
             grad[i].append(np.dot(delta[i], np.ones((batch_size, 1))))
         if np.isnan(grad[i][0]).any() or np.isnan(grad[i][1]).any():
-            print("WARNING: Gradients/biases are nan")
+            print('WARNING: Gradients/biases are nan')
             exit(-1)
     return grad

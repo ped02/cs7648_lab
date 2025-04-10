@@ -1,5 +1,4 @@
-
-import pickle
+import pickle  # nosec
 import numpy as np
 
 
@@ -10,7 +9,7 @@ def saveObject(tau, fname):
 
 def loadObject(fname):
     with open(fname, 'rb') as f:
-        tau = pickle.load(f)
+        tau = pickle.load(f)  # nosec
     return tau
 
 
@@ -21,7 +20,7 @@ def saveNetworks(nn, nnQ, fname):
 
 def loadNetworks(fname):
     with open(fname, 'rb') as f:
-        datdict = pickle.load(f)
+        datdict = pickle.load(f)  # nosec
     return datdict['nn'], datdict['nnQ']
 
 
