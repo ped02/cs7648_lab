@@ -22,6 +22,24 @@ def update_policy_with_bc(nn_readonly, inputs, labels, learning_rate):
     # 4) Update loss metric that you wish to plot
     # NOTE: Use nn_new for all computations, nn_readonly should not be used
 
+    num_samples = inputs.shape[0]
+
+    for i in range(num_samples):
+        x_sample = inputs[i].reshape(-1, 1)
+        y_sample = labels[i].reshape(-1, 1)
+
+        y_pred = forward_pass(nn_new, x_sample, final_softmax=False, full_return=False)
+
+        loss += np.mean((y_pred - y_sample) ** 2)
+
+        grad = backprop(nn_new, x_sample, y_sample, loss='MSE')
+
+        for l in range(len(nn_new)):
+            nn_new[l][0] -= learning_rate * grad[l][0]
+            nn_new[l][1] -= learning_rate * grad[l][1]
+
+    loss = loss / num_samples
+
     #####
     return nn_new, loss
 
