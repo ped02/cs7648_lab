@@ -23,6 +23,23 @@ def update_policy_with_bc(nn_readonly, inputs, labels, learning_rate):
     # NOTE: Use nn_new for all computations, nn_readonly should not be used
 
     #####
+    
+    for x, y_true in zip(inputs, labels):
+        x = x.reshape(-1, 1)
+        y_true = y_true.reshape(-1, 1)
+
+        grads = backprop(nn_new, x, y_true, loss='MSE')
+
+        y_pred = forward_pass(nn_new, x)
+        sample_loss = np.mean((y_pred - y_true) ** 2)
+        loss += sample_loss
+
+        for i in range(len(nn_new)):
+            nn_new[i][0] -= learning_rate * grads[i][0]
+            nn_new[i][1] -= learning_rate * grads[i][1]
+
+    loss /= inputs.shape[0]
+    
     return nn_new, loss
 
 
@@ -60,16 +77,16 @@ if __name__ == '__main__':
     env = WAMEnv()
 
     # Load demo
-    save_path = './demo/TA_demo_1.pkl'
+    save_path = './code/demo/TA_demo_1.pkl'
     expert = load_and_preprocess(
         save_path
     )  # see load_and_preprocess documentation for an understanding of the state and action spaces
-    print(expert['observations'].shape)
+    # print(expert['observations'].shape)
 
     observations = expert['observations'][: env.horizon, :]
     actions = expert['actions'][: env.horizon, :7]
-    print(observations[0:5], 'observations')
-    print(actions[0:5], 'actions')
+    # print(observations[0:5], 'observations')
+    # print(actions[0:5], 'actions')
 
     ##### MODIFY CODE HERE (Optional)
     # init network
@@ -91,7 +108,7 @@ if __name__ == '__main__':
         nn, accuracy = update_policy_with_bc(
             nn, observations, actions, learning_rate=learning_rate
         )
-        print(f'Percent correct_preds: {accuracy}')
+        # print(f'Percent correct_preds: {accuracy}')
         acc.append(accuracy)
 
     plt.figure()
