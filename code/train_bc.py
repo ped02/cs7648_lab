@@ -21,6 +21,17 @@ def update_policy_with_bc(nn_readonly, inputs, labels, learning_rate):
     # 3) Update your network's params according to their gradients
     # 4) Update loss metric that you wish to plot
     # NOTE: Use nn_new for all computations, nn_readonly should not be used
+    for x, y in zip(inputs, labels):
+        x = x[..., None]
+        y = y[..., None]
+        pred = forward_pass(nn_new, x)
+        step_loss = np.mean((pred - y) ** 2)
+        loss += step_loss
+        grads = backprop(nn_new, x, y, 'MSE')
+        for i in range(len(nn_new)):
+            nn_new[i][0] -= learning_rate * grads[i][0]
+            nn_new[i][1] -= learning_rate * grads[i][1]
+    loss /= inputs.shape[0]
 
     #####
     return nn_new, loss
@@ -82,8 +93,8 @@ if __name__ == '__main__':
         numOutputDims=numOutputDims,
     )
     # training
-    num_epochs = 100
-    learning_rate = 1e-3
+    num_epochs = 1000
+    learning_rate = 2e-3
     #####
 
     acc = []
@@ -94,6 +105,7 @@ if __name__ == '__main__':
         print(f'Percent correct_preds: {accuracy}')
         acc.append(accuracy)
 
+    os.makedirs('figs', exist_ok=True)
     plt.figure()
     plt.plot(acc, 'b-')
     plt.savefig('figs/progress_bc.png')
